@@ -10,11 +10,16 @@ View your app in AI Studio: https://ai.studio/apps/drive/1BY0VIoL0ZtWQHmJVo3pjPF
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Configure environment:
+   - For FIBO: add `FIBO_API_URL` and `FIBO_API_KEY` in a `.env` file at project root.
+   - (Optional) Gemini fallback: add `GEMINI_API_KEY` or `API_KEY` if you plan to use the Gemini service.
 3. Run the app:
    `npm run dev`
+
+### FIBO JSON Prompting
+
+This app sends structured JSON to FIBO derived from your scene settings (lighting, camera, composition, style). The response must include either `image_base64` or `image_url`.
