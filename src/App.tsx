@@ -1,39 +1,31 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { StudioScene } from './components/StudioScene';
-import { ControlPanel } from './components/ControlPanel';
-import { CameraState, RenderSettings, LightingPreset, ArtStyle, GeneratedResult, TransformMode } from './types';
-import { generateSceneImage, generateSceneVideo } from './services/geminiService';
+import React, { useRef, useCallback } from 'react';
+import { StudioScene } from './components/StudioScene.tsx';
+import { ControlPanel } from './components/ControlPanel.tsx';
+import { generateSceneImage, generateSceneVideo } from './services/geminiService.ts';
 import { X, Download, AlertCircle, Settings2 } from 'lucide-react';
+import { useSettingsStore, useCameraStore, useResultStore, useViewportStore } from './stores/index.ts';
 
 const App: React.FC = () => {
-  // State for rendering settings
-  const [settings, setSettings] = useState<RenderSettings>({
-    prompt: "",
-    lighting: LightingPreset.Studio,
-    style: ArtStyle.Cinematic,
-    aspectRatio: "16:9",
-    mode: 'image'
-  });
+  // State from zustand stores
+  const settings = useSettingsStore((state) => state.settings);
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
 
-  // State for camera logic
-  const [cameraState, setCameraState] = useState<CameraState>({
-    position: [0, 2, 5],
-    rotation: [0, 0, 0],
-    fov: 50
-  });
-  
-  // Viewport Settings
-  const [showSubject, setShowSubject] = useState(true);
-  const [showGrid, setShowGrid] = useState(true);
-  const [transformMode, setTransformMode] = useState<TransformMode>(null);
+  const cameraState = useCameraStore((state) => state.cameraState);
+  const updateCamera = useCameraStore((state) => state.updateCamera);
 
-  // Result handling
-  const [result, setResult] = useState<GeneratedResult>({
-    imageUrl: null,
-    videoUrl: null,
-    loading: false,
-    error: null
-  });
+  const result = useResultStore((state) => state.result);
+  const setLoading = useResultStore((state) => state.setLoading);
+  const setImageResult = useResultStore((state) => state.setImageResult);
+  const setVideoResult = useResultStore((state) => state.setVideoResult);
+  const setError = useResultStore((state) => state.setError);
+  const clearResult = useResultStore((state) => state.clearResult);
+
+  const showSubject = useViewportStore((state) => state.showSubject);
+  const setShowSubject = useViewportStore((state) => state.setShowSubject);
+  const showGrid = useViewportStore((state) => state.showGrid);
+  const setShowGrid = useViewportStore((state) => state.setShowGrid);
+  const transformMode = useViewportStore((state) => state.transformMode);
+  const setTransformMode = useViewportStore((state) => state.setTransformMode);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -43,14 +35,9 @@ const App: React.FC = () => {
     return typeof window !== 'undefined' && window.aistudio && window.aistudio.openSelectKey;
   };
 
-  // Handlers
-  const handleUpdateSettings = (newSettings: Partial<RenderSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
-  };
-
-  const handleCameraUpdate = useCallback((state: CameraState) => {
-    setCameraState(state);
-  }, []);
+  const handleCameraUpdate = useCallback((newCameraState: any) => {
+    updateCamera(newCameraState);
+  }, [updateCamera]);
 
   const handleRender = async () => {
     if (!settings.prompt) return;
@@ -65,7 +52,7 @@ const App: React.FC = () => {
        }
     }
 
-    setResult({ ...result, loading: true, error: null });
+    setLoading(true);
 
     try {
       // 1. Capture the current 3D viewport as a base64 image
@@ -88,13 +75,13 @@ const App: React.FC = () => {
 
         const cameraDescription = `${angleDesc}, ${distDesc}.`;
         const imageUrl = await generateSceneImage(settings, cameraState, cameraDescription, sceneCapture);
-        setResult({ imageUrl, videoUrl: null, loading: false, error: null });
+        setImageResult(imageUrl);
 
       } else {
         // --- VIDEO GENERATION ---
         // Pass the scene capture as the starting frame/reference
         const videoUrl = await generateSceneVideo(settings, sceneCapture);
-        setResult({ imageUrl: null, videoUrl, loading: false, error: null });
+        setVideoResult(videoUrl);
       }
 
     } catch (err: any) {
@@ -108,12 +95,7 @@ const App: React.FC = () => {
         errorMessage = "Project Error: The selected Google Cloud Project does not have access to Veo. Please select a project with Billing Enabled.";
       }
 
-      setResult({ 
-        imageUrl: null, 
-        videoUrl: null,
-        loading: false, 
-        error: errorMessage
-      });
+      setError(errorMessage);
     }
   };
 
@@ -174,9 +156,9 @@ const App: React.FC = () => {
       {/* Control Panel Layer */}
       <ControlPanel 
         settings={settings} 
-        updateSettings={handleUpdateSettings}
+        updateSettings={updateSettings}
         fov={cameraState.fov}
-        setFov={(val) => setCameraState(prev => ({...prev, fov: val}))}
+        setFov={(val) => updateCamera({ fov: val })}
         onRender={handleRender}
         isGenerating={result.loading}
         showSubject={showSubject}
@@ -206,7 +188,7 @@ const App: React.FC = () => {
                   </a>
                 )}
                 <button 
-                  onClick={() => setResult({imageUrl: null, videoUrl: null, loading: false, error: null})}
+                  onClick={() => clearResult()}
                   className="p-1 hover:text-white text-zinc-500 transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -240,7 +222,7 @@ const App: React.FC = () => {
                          // @ts-ignore
                          await window.aistudio.openSelectKey();
                          // We clear error so user can try again
-                         setResult({...result, error: null, loading: false});
+                         setError(null);
                       }}
                       className="flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded text-xs transition-colors"
                     >
