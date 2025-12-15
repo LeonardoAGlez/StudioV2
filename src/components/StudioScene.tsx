@@ -46,52 +46,107 @@ const CameraLogger: React.FC<{ onUpdate: (state: CameraState) => void }> = ({ on
 };
 
 // Lighting Setup based on presets
-const LightingSetup: React.FC<{ preset: LightingPreset }> = ({ preset }) => {
-  switch (preset) {
-    case LightingPreset.GoldenHour:
+const LightingSetup: React.FC<{ preset: any }> = ({ preset }) => {
+  // If preset is a string that matches our enum, use built-in setups
+  if (typeof preset === 'string') {
+    switch (preset) {
+      case LightingPreset.GoldenHour:
+        return (
+          <>
+            <ambientLight intensity={0.4} color="#ffaa00" />
+            <directionalLight position={[10, 5, 5]} intensity={2} color="#ff9900" castShadow />
+            <Environment preset="sunset" />
+          </>
+        );
+      case LightingPreset.Midnight:
+        return (
+          <>
+            <ambientLight intensity={0.1} color="#001133" />
+            <pointLight position={[2, 3, 2]} intensity={5} color="#4488ff" />
+            <Environment preset="night" />
+          </>
+        );
+      case LightingPreset.NeonCity:
+        return (
+          <>
+            <ambientLight intensity={0.1} />
+            <rectAreaLight width={5} height={20} position={[-5, 0, 0]} color="#ff00ff" intensity={5} />
+            <rectAreaLight width={5} height={20} position={[5, 0, 0]} color="#00ffff" intensity={5} />
+            <Environment preset="city" />
+          </>
+        );
+      case LightingPreset.Overcast:
+        return (
+          <>
+            <ambientLight intensity={0.8} color="#ffffff" />
+            <directionalLight position={[0, 10, 0]} intensity={1} castShadow />
+            <Environment preset="park" />
+          </>
+        );
+      case LightingPreset.Studio:
+      default:
+        return (
+          <>
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
+            <directionalLight position={[-5, 5, -5]} intensity={0.5} color="#b0c4de" />
+            <Environment preset="studio" />
+          </>
+        );
+    }
+  }
+
+  // If preset is an object (dynamic/director preset), map common keys to lights
+  if (typeof preset === 'object' && preset !== null) {
+    const lightingCfg = preset.lighting || preset;
+    // time_of_day -> golden hour mapping
+    if (lightingCfg.time_of_day === 'golden_hour' || lightingCfg.preset === 'high_key') {
       return (
         <>
-          <ambientLight intensity={0.4} color="#ffaa00" />
-          <directionalLight position={[10, 5, 5]} intensity={2} color="#ff9900" castShadow />
+          <ambientLight intensity={0.45} color="#ffb86b" />
+          <directionalLight position={[8, 6, 4]} intensity={1.8} color="#ff9a3d" castShadow />
           <Environment preset="sunset" />
         </>
       );
-    case LightingPreset.Midnight:
+    }
+
+    if (lightingCfg.preset === 'dramatic' || lightingCfg.color_grading === 'cool') {
       return (
         <>
-          <ambientLight intensity={0.1} color="#001133" />
-          <pointLight position={[2, 3, 2]} intensity={5} color="#4488ff" />
+          <ambientLight intensity={0.08} color="#001022" />
+          <directionalLight position={[6, 8, 4]} intensity={2.5} color="#4aa3ff" castShadow />
           <Environment preset="night" />
         </>
       );
-    case LightingPreset.NeonCity:
+    }
+
+    if (lightingCfg.preset === 'natural' || lightingCfg.time_of_day === 'day') {
       return (
         <>
-           <ambientLight intensity={0.1} />
-           <rectAreaLight width={5} height={20} position={[-5, 0, 0]} color="#ff00ff" intensity={5} />
-           <rectAreaLight width={5} height={20} position={[5, 0, 0]} color="#00ffff" intensity={5} />
-           <Environment preset="city" />
-        </>
-      );
-    case LightingPreset.Overcast:
-      return (
-        <>
-          <ambientLight intensity={0.8} color="#ffffff" />
-          <directionalLight position={[0, 10, 0]} intensity={1} castShadow />
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[0, 10, 0]} intensity={1.2} castShadow />
           <Environment preset="park" />
         </>
       );
-    case LightingPreset.Studio:
-    default:
-      return (
-        <>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
-          <directionalLight position={[-5, 5, -5]} intensity={0.5} color="#b0c4de" />
-          <Environment preset="studio" />
-        </>
-      );
+    }
+
+    // Fallback generic soft lighting using provided intensity if any
+    const intensity = lightingCfg.intensity || 0.5;
+    return (
+      <>
+        <ambientLight intensity={intensity} />
+        <directionalLight position={[5, 5, 5]} intensity={Math.max(0.5, intensity)} />
+      </>
+    );
   }
+
+  // final fallback
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 5, 5]} intensity={1} />
+    </>
+  );
 };
 
 // Interactive Mannequin Wrapper

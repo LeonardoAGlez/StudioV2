@@ -25,7 +25,8 @@ export type OutputMode = 'image' | 'video';
 
 export interface RenderSettings {
   prompt: string;
-  lighting: LightingPreset;
+  // `lighting` can be a built-in LightingPreset string or a dynamic preset object
+  lighting: LightingPreset | any;
   style: ArtStyle;
   aspectRatio: string;
   mode: OutputMode;

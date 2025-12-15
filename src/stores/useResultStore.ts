@@ -8,6 +8,8 @@ interface ResultState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearResult: () => void;
+  appendStatusLog: (msg: string) => void;
+  clearStatusLogs: () => void;
 }
 
 const DEFAULT_RESULT: GeneratedResult = {
@@ -21,11 +23,11 @@ export const useResultStore = create<ResultState>((set) => ({
   result: DEFAULT_RESULT,
   setImageResult: (imageUrl: string) =>
     set(() => ({
-      result: { imageUrl, videoUrl: null, loading: false, error: null }
+      result: { imageUrl, videoUrl: null, loading: false, error: null, statusLogs: [] }
     })),
   setVideoResult: (videoUrl: string) =>
     set(() => ({
-      result: { imageUrl: null, videoUrl, loading: false, error: null }
+      result: { imageUrl: null, videoUrl, loading: false, error: null, statusLogs: [] }
     })),
   setLoading: (loading: boolean) =>
     set((state) => ({
@@ -37,6 +39,15 @@ export const useResultStore = create<ResultState>((set) => ({
     })),
   clearResult: () =>
     set(() => ({
-      result: DEFAULT_RESULT
+      result: { ...DEFAULT_RESULT, statusLogs: [] }
     }))
+  ,
+  appendStatusLog: (msg: string) =>
+    set((state) => ({
+      result: { ...state.result, statusLogs: [...(state.result.statusLogs || []), msg] }
+    })),
+  clearStatusLogs: () =>
+    set((state) => ({
+      result: { ...state.result, statusLogs: [] }
+    })),
 }));

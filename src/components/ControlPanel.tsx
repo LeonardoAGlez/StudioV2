@@ -1,6 +1,8 @@
 import React from 'react';
-import { Camera, Sun, Palette, Wand2, MonitorPlay, Ratio, User, Grid3X3, Move3d, Rotate3d, MousePointer2, Image as ImageIcon, Video } from 'lucide-react';
+import { Camera, Sun, Palette, Wand2, MonitorPlay, Ratio, User, Grid3X3, Move3d, Rotate3d, MousePointer2, Image as ImageIcon, Video, Zap } from 'lucide-react';
 import { RenderSettings, LightingPreset, ArtStyle, TransformMode, OutputMode } from '../types';
+import { generationApi } from '../services/generationApi';
+import { useEffect, useState } from 'react';
 
 interface ControlPanelProps {
   settings: RenderSettings;
@@ -31,6 +33,22 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   transformMode,
   setTransformMode
 }) => {
+  const [directorPresets, setDirectorPresets] = useState<any[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token') || undefined;
+        const all = await generationApi.getAllPresets(token);
+        if (!mounted) return;
+        setDirectorPresets(all.directors || []);
+      } catch (err) {
+        console.warn('Failed to load presets', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // Veo restricts aspect ratios
   const supportedRatios = settings.mode === 'video' 
@@ -203,15 +221,34 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <Sun className="w-3 h-3" />
             Lighting Setup
           </label>
-          <select
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-sm text-white outline-none focus:border-orange-500"
-            value={settings.lighting}
-            onChange={(e) => updateSettings({ lighting: e.target.value as LightingPreset })}
-          >
-            {Object.values(LightingPreset).map((preset) => (
-              <option key={preset} value={preset}>{preset}</option>
-            ))}
-          </select>
+          <div>
+            <select
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-md p-2 text-sm text-white outline-none focus:border-orange-500"
+              value={typeof settings.lighting === 'string' ? settings.lighting : (settings.lighting?.id || '')}
+              onChange={(e) => {
+                const val = e.target.value;
+                // If selecting a built-in preset
+                const builtIn = (Object.values(LightingPreset) as string[]).includes(val) ? val : null;
+                if (builtIn) {
+                  updateSettings({ lighting: builtIn as LightingPreset });
+                  return;
+                }
+                // Otherwise find director preset by id
+                const found = directorPresets.find(d => d.id === val);
+                if (found) {
+                  updateSettings({ lighting: found });
+                }
+              }}
+            >
+              {Object.values(LightingPreset).map((preset) => (
+                <option key={preset} value={preset}>{preset}</option>
+              ))}
+              {directorPresets.length > 0 && <option disabled>──────────</option>}
+              {directorPresets.map(d => (
+                <option key={d.id} value={d.id}>{`Director — ${d.name}`}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="space-y-2">

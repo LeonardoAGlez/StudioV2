@@ -70,12 +70,45 @@ export const generationApi = {
 
   // Obtener presets de iluminación
   async getLightingPresets(token?: string): Promise<any[]> {
-    return httpClient.get('/presets/lighting', token);
+    const all = await generationApi.getAllPresets(token);
+    return all.lighting || [];
   },
 
   // Obtener presets de cámara
   async getCameraPresets(token?: string): Promise<any[]> {
-    return httpClient.get('/presets/camera', token);
+    const all = await generationApi.getAllPresets(token);
+    return all.camera || [];
+  },
+
+  // Obtener todos los presets agrupados por tipo
+  async getAllPresets(token?: string): Promise<{ lighting: any[]; camera: any[]; directors?: any[] }> {
+    const res = await httpClient.get('/presets/list', token);
+    // Algunos backends devuelven un array de presets con `type`.
+    if (!res) return { lighting: [], camera: [], directors: [] };
+
+    if (Array.isArray(res)) {
+      const lighting = res.filter((p: any) => p.type === 'lighting');
+      const camera = res.filter((p: any) => p.type === 'camera');
+      return { lighting, camera, directors: [] };
+    }
+
+    // Si el backend devuelve { lighting: [...], camera: [...] }
+    if (res.lighting || res.camera) {
+      return {
+        lighting: res.lighting || [],
+        camera: res.camera || [],
+        directors: []
+      };
+    }
+
+    // Si el backend devuelve un objeto map de presets (ej: DIRECTOR_PRESETS)
+    // Convertimos a un array de presets tipo director: { id, name, camera, lighting, style }
+    if (typeof res === 'object') {
+      const directors = Object.keys(res).map((k) => ({ id: k, ...(res as any)[k] }));
+      return { lighting: [], camera: [], directors };
+    }
+
+    return { lighting: [], camera: [], directors: [] };
   },
 };
 
