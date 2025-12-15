@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: "0.0.0.0",
+      allowedHosts: ["studiov2.onrender.com", "*"],
       proxy: {
         "/fibo": {
           target: env.FIBO_API_URL || "https://engine.prod.bria-api.com/v2",
